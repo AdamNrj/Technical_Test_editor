@@ -1,5 +1,47 @@
 {
   "HomePage": {
-    "title": "Hello world!"
+    "title": "Visual Editor",
+    "subtitle": "Create and edit diagrams with our modern visual editor",
+    "openEditor": "Open Editor",
+    "featureFastTitle": "Fast & Intuitive",
+    "featureFastDesc": "Create diagrams quickly with our streamlined interface and smart tools.",
+    "featureModernTitle": "Modern Design",
+    "featureModernDesc": "A beautiful, accessible interface that adapts to your preferences and needs.",
+    "featureAccessibleTitle": "Accessible",
+    "featureAccessibleDesc": "Full support for different themes and accessibility needs, including color-blind modes.",
+    "ctaTitle": "Ready to start creating?",
+    "ctaDesc": "Jump into our visual editor and bring your ideas to life.",
+    "footerNote": "Built with modern web technologies for the best experience."
+  },
+  "Editor": {
+    "documentTitle": "Untitled Document",
+    "modifyShape": "Modify Shape",
+    "autoOrganize": "Auto Organize",
+    "undo": "Undo",
+    "redo": "Redo",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetView": "Reset View",
+    "save": "Save",
+    "toggleTheme": "Toggle Theme",
+    "toggleLanguage": "Toggle Language"
+  },
+  "SaveStatus": {
+    "saved": "Saved",
+    "saving": "Saving...",
+    "error": "Error"
+  },
+  "CommandBar": {
+    "searchPlaceholder": "Search commands...",
+    "commandBar": "Command Bar"
+  },
+  "Theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "highContrast": "High Contrast",
+    "protanopia": "Protanopia",
+    "deuteranopia": "Deuteranopia",
+    "tritanopia": "Tritanopia",
+    "changeTheme": "Change theme"
   }
 }

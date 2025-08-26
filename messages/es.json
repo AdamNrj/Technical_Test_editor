@@ -1,5 +1,47 @@
 {
   "HomePage": {
-    "title": "Hola mundo!"
+    "title": "Editor Visual",
+    "subtitle": "Crea y edita diagramas con nuestro editor visual moderno",
+    "openEditor": "Abrir Editor",
+    "featureFastTitle": "Rápido e Intuitivo",
+    "featureFastDesc": "Crea diagramas rápidamente con nuestra interfaz optimizada y herramientas inteligentes.",
+    "featureModernTitle": "Diseño Moderno",
+    "featureModernDesc": "Interfaz hermosa y accesible que se adapta a tus preferencias y necesidades.",
+    "featureAccessibleTitle": "Accesible",
+    "featureAccessibleDesc": "Soporte completo para distintos temas y necesidades de accesibilidad, incluyendo modos para daltonismo.",
+    "ctaTitle": "¿Listo para empezar a crear?",
+    "ctaDesc": "Sumérgete en nuestro editor visual y da vida a tus ideas.",
+    "footerNote": "Construido con tecnologías web modernas para la mejor experiencia."
+  },
+  "Editor": {
+    "documentTitle": "Documento Sin Título",
+    "modifyShape": "Modificar Figura",
+    "autoOrganize": "Auto-organizar",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "resetView": "Restablecer Vista",
+    "save": "Guardar",
+    "toggleTheme": "Cambiar Tema",
+    "toggleLanguage": "Cambiar Idioma"
+  },
+  "SaveStatus": {
+    "saved": "Guardado",
+    "saving": "Guardando...",
+    "error": "Error"
+  },
+  "CommandBar": {
+    "searchPlaceholder": "Buscar comandos...",
+    "commandBar": "Barra de Comandos"
+  },
+  "Theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "highContrast": "Alto Contraste",
+    "protanopia": "Protanopia",
+    "deuteranopia": "Deuteranopia",
+    "tritanopia": "Tritanopia",
+    "changeTheme": "Cambiar tema"
   }
 }
