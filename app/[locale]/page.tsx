@@ -80,7 +80,7 @@ export default function HomePage() {
             <Link href={`/${locale}/editor`}>
               <Button
                 size="lg"
-                className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                className="text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
               >
                 {tHome('openEditor')}
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -90,7 +90,7 @@ export default function HomePage() {
 
           {/* Features Grid */}
           <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200">
+            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 mx-auto">
                 <Zap className="h-6 w-6 text-primary" />
               </div>
@@ -102,7 +102,7 @@ export default function HomePage() {
               </p>
             </Card>
 
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200">
+            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
               <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-4 mx-auto">
                 <Palette className="h-6 w-6 text-secondary" />
               </div>
@@ -114,7 +114,7 @@ export default function HomePage() {
               </p>
             </Card>
 
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200">
+            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
               <div className="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4 mx-auto">
                 <Globe className="h-6 w-6 text-accent" />
               </div>
@@ -137,7 +137,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-xl bg-transparent"
+                className="rounded-xl bg-transparent cursor-pointer"
               >
                 {tHome('openEditor')}
                 <ArrowRight className="ml-2 h-4 w-4" />

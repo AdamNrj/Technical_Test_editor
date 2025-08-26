@@ -3,11 +3,13 @@
 import type React from 'react'
 import { useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+
 import { Toolbar } from '@/components/commons/toolbar'
 import { SaveIndicator } from '@/components/commons/save-indicator'
 import { LangSwitcher } from '@/components/commons/lang-switcher'
@@ -15,9 +17,19 @@ import { ThemeSwitcher } from '@/components/commons/theme-switcher'
 import { CommandBar } from '@/components/commons/command-bar'
 import { AccessibilityAnnouncer } from '@/components/commons/accessibility-announcer'
 import { SkipLink } from '@/components/commons/skip-link'
+
 import { useTheme } from '@/hooks/use-theme'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
+import { useTldrawAutosave } from '@/hooks/use-tldraw-autosave'
+
 import { ArrowLeft, Palette, FileText, Command } from 'lucide-react'
+import {
+  Tldraw,
+  type Editor,
+  createShapeId,
+  type TLShapeId,
+} from '@tldraw/tldraw'
+import '@tldraw/tldraw/tldraw.css'
 
 type SaveStatus = 'saved' | 'saving' | 'error'
 type Locale = 'en' | 'es'
@@ -29,34 +41,46 @@ type ThemeMode =
   | 'deuteranopia'
   | 'tritanopia'
 
+// Tipo auxiliar: elemento que acepta Editor.createShapes()
+type CreateShapeInput = Parameters<Editor['createShapes']>[0][number]
+
 export default function EditorPage() {
-  // i18n (usa el locale real de next-intl)
+  // locale & rutas
   const locale = useLocale() as Locale
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const docId = searchParams.get('id') ?? 'main' // multi-doc opcional
 
+  // i18n
   const tEditor = useTranslations('Editor')
   const tSave = useTranslations('SaveStatus')
   const tCmd = useTranslations('CommandBar')
   const tTheme = useTranslations('Theme')
 
-  // estado UI
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
+  // UI state
   const [documentTitle, setDocumentTitle] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(100)
   const { theme, changeTheme } = useTheme()
 
-  // helper: cambiar idioma navegando (reemplaza el prefijo /en o /es)
+  // tldraw + autosave (tRPC)
+  const { onMount, isLoading, saveState, editorRef } = useTldrawAutosave(docId)
+  const saveStatus: SaveStatus =
+    saveState === 'saving'
+      ? 'saving'
+      : saveState === 'error'
+      ? 'error'
+      : 'saved'
+
+  // helpers
   function navigateToLocale(next: Locale) {
-    const parts = pathname.split('/')
-    // parts[0] = "", parts[1] = locale actual
+    const parts = pathname.split('/') // ["", "en", "editor"...]
     const newPath = '/' + [next, ...parts.slice(2)].filter(Boolean).join('/')
     router.push(newPath || `/${next}`)
   }
 
-  // helper: traducir modo de tema a key de Theme.*
   function themeKeyFor(
     mode: ThemeMode
   ):
@@ -66,70 +90,125 @@ export default function EditorPage() {
     | 'protanopia'
     | 'deuteranopia'
     | 'tritanopia' {
-    if (mode === 'high-contrast') return 'highContrast'
-    return mode as never
+    switch (mode) {
+      case 'light':
+        return 'light'
+      case 'dark':
+        return 'dark'
+      case 'high-contrast':
+        return 'highContrast'
+      case 'protanopia':
+        return 'protanopia'
+      case 'deuteranopia':
+        return 'deuteranopia'
+      case 'tritanopia':
+        return 'tritanopia'
+    }
   }
 
-  const handleSave = () => {
-    setSaveStatus('saving')
-    setAnnouncement(tSave('saving'))
-    setTimeout(() => {
-      setSaveStatus('saved')
-      setAnnouncement(tSave('saved'))
-    }, 1000)
+  function withEditor(fn: (e: Editor) => void) {
+    const e = editorRef.current
+    if (e) fn(e)
   }
 
-  const handleModifyShape = () => {
-    setSaveStatus('saving')
-    setAnnouncement(
-      locale === 'en' ? 'Modifying shape...' : 'Modificando figura...'
-    )
-    setTimeout(() => {
-      setSaveStatus('saved')
+  // === Acciones del editor ===
+  function handleModifyShape() {
+    withEditor((editor) => {
+      const selected = [...editor.getSelectedShapeIds()]
+      if (selected.length === 0) {
+        // crear rectángulo básico y seleccionarlo
+        const id: TLShapeId = createShapeId()
+        const rect = {
+          id,
+          type: 'geo',
+          x: 200,
+          y: 200,
+          props: { geo: 'rectangle' },
+        } as unknown as CreateShapeInput
+        editor.createShapes([rect])
+        editor.select(id)
+        setAnnouncement(
+          locale === 'en' ? 'Rectangle created' : 'Rectángulo creado'
+        )
+        return
+      }
+      // mover ligeramente las figuras seleccionadas
+      const dx = 24 - Math.random() * 48
+      const dy = 24 - Math.random() * 48
+      editor.nudgeShapes(selected, { x: dx, y: dy })
       setAnnouncement(locale === 'en' ? 'Shape modified' : 'Figura modificada')
-    }, 2000)
+    })
   }
 
-  const handleAutoOrganize = () => {
-    setSaveStatus('saving')
-    setAnnouncement(
-      locale === 'en'
-        ? 'Auto-organizing elements...'
-        : 'Auto-organizando elementos...'
-    )
-    setTimeout(() => {
-      setSaveStatus('saved')
+  function handleAutoOrganize() {
+    withEditor((editor) => {
+      const shapes = editor.getCurrentPageShapes()
+      const gap = 120
+      let col = 0
+      let row = 0
+      const cols = 5
+      for (const s of shapes) {
+        const targetX = col * gap
+        const targetY = row * gap
+        const dx = targetX - s.x
+        const dy = targetY - s.y
+        editor.nudgeShapes([s.id], { x: dx, y: dy })
+        col++
+        if (col >= cols) {
+          col = 0
+          row++
+        }
+      }
       setAnnouncement(
         locale === 'en' ? 'Elements organized' : 'Elementos organizados'
       )
-    }, 1500)
+    })
+  }
+
+  // === Handlers UI ===
+  const handleSave = () => {
+    // El autosave ya guarda; damos feedback manual
+    setAnnouncement(tSave('saved'))
   }
 
   const handleUndo = () => {
-    setAnnouncement(
-      locale === 'en' ? 'Undoing last action' : 'Deshaciendo última acción'
-    )
+    withEditor((editor) => {
+      editor.undo()
+      setAnnouncement(locale === 'en' ? 'Undo' : 'Deshacer')
+    })
   }
 
   const handleRedo = () => {
-    setAnnouncement(
-      locale === 'en' ? 'Redoing last action' : 'Rehaciendo última acción'
-    )
+    withEditor((editor) => {
+      editor.redo()
+      setAnnouncement(locale === 'en' ? 'Redo' : 'Rehacer')
+    })
   }
 
   const handleZoomIn = () => {
+    withEditor((editor) => {
+      editor.zoomIn()
+    })
     const newZoom = Math.min(zoomLevel + 25, 500)
     setZoomLevel(newZoom)
     setAnnouncement(`${locale === 'en' ? 'Zoom:' : 'Zoom:'} ${newZoom}%`)
   }
 
   const handleZoomOut = () => {
+    withEditor((editor) => {
+      editor.zoomOut()
+    })
     const newZoom = Math.max(zoomLevel - 25, 25)
     setZoomLevel(newZoom)
     setAnnouncement(`${locale === 'en' ? 'Zoom:' : 'Zoom:'} ${newZoom}%`)
   }
 
   const handleResetView = () => {
+    withEditor((editor) => {
+      // reset de zoom + cámara al origen
+      editor.resetZoom()
+      editor.setCamera({ x: 0, y: 0, z: 1 })
+    })
     setZoomLevel(100)
     setAnnouncement(
       locale === 'en' ? 'View reset to 100%' : 'Vista restablecida al 100%'
@@ -148,14 +227,16 @@ export default function EditorPage() {
     const currentIndex = modes.indexOf(theme as ThemeMode)
     const nextTheme = modes[(currentIndex + 1) % modes.length]
     changeTheme(nextTheme)
-    const key = themeKeyFor(nextTheme)
-    // Mensaje accesible: "Change theme: Dark"
-    setAnnouncement(`${tTheme('changeTheme')}: ${tTheme(key as never)}`)
+    setAnnouncement(
+      `${tTheme('changeTheme')}: ${tTheme(themeKeyFor(nextTheme))}`
+    )
   }
 
   const handleToggleLanguage = () => {
     const next = locale === 'en' ? 'es' : 'en'
-    navigateToLocale(next)
+    const parts = pathname.split('/')
+    const newPath = '/' + [next, ...parts.slice(2)].filter(Boolean).join('/')
+    router.push(newPath || `/${next}`)
     setAnnouncement(
       next === 'en'
         ? 'Language changed to English'
@@ -181,10 +262,9 @@ export default function EditorPage() {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setDocumentTitle(e.target.value)
-    setSaveStatus('saving')
-    setTimeout(() => setSaveStatus('saved'), 1000)
   }
 
+  // === Render ===
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SkipLink href="#main-content">
@@ -233,9 +313,9 @@ export default function EditorPage() {
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            {/* Left Section - Back button and Document Title */}
+            {/* Left Section */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Link href="/">
+              <Link href={`/${locale}`}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -303,7 +383,7 @@ export default function EditorPage() {
               />
             </div>
 
-            {/* Right Section - Save Status and Controls */}
+            {/* Right Section - Save + Lang/Theme */}
             <div
               className="flex items-center gap-3"
               role="group"
@@ -339,12 +419,10 @@ export default function EditorPage() {
 
               <Separator orientation="vertical" className="h-6" />
 
-              {/* LangSwitcher: pasar el locale real y navegar al cambiar */}
               <LangSwitcher
                 currentLang={locale}
                 onLanguageChange={(l: Locale) => navigateToLocale(l)}
               />
-              {/* ThemeSwitcher: pasar labels traducidos */}
               <ThemeSwitcher
                 currentTheme={theme}
                 onThemeChange={changeTheme}
@@ -393,80 +471,20 @@ export default function EditorPage() {
         id="main-content"
         role="main"
       >
-        {/* Canvas Container */}
         <Card
           className="flex-1 border-border bg-card relative overflow-hidden min-h-0 shadow-sm"
           role="application"
           aria-label={locale === 'en' ? 'Drawing canvas' : 'Lienzo de dibujo'}
         >
-          {/* Canvas Placeholder - This is where tldraw will be integrated */}
-          <div
-            className="absolute inset-4 bg-background rounded-lg border-2 border-dashed border-border flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all duration-150"
-            id="canvas-area"
-            tabIndex={0}
-            role="img"
-            aria-label={
-              locale === 'en'
-                ? 'Canvas area for drawing and editing diagrams'
-                : 'Área del lienzo para dibujar y editar diagramas'
-            }
-          >
-            <div className="text-center">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Palette className="h-8 w-8 text-primary" aria-hidden="true" />
+          <div className="absolute inset-0" id="canvas-area">
+            {isLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                Loading…
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {locale === 'en' ? 'Canvas Area' : 'Área del Lienzo'}
-              </h3>
-              <p className="text-muted-foreground max-w-md mb-4">
-                {locale === 'en'
-                  ? 'This is where the tldraw canvas will be integrated. The area takes up 80% of the viewport height for optimal drawing space.'
-                  : 'Aquí es donde se integrará el lienzo de tldraw. El área ocupa el 80% de la altura de la ventana para un espacio de dibujo óptimo.'}
-              </p>
-              <div className="mt-4 flex gap-2 justify-center flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleModifyShape}
-                  className="bg-transparent btn-hover-effect"
-                  aria-describedby="modify-shortcut"
-                >
-                  {tEditor('modifyShape')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAutoOrganize}
-                  className="bg-transparent btn-hover-effect"
-                  aria-describedby="organize-shortcut"
-                >
-                  {tEditor('autoOrganize')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCommandBarOpen(true)}
-                  className="bg-transparent btn-hover-effect"
-                >
-                  <Command className="h-4 w-4 mr-2" />
-                  {tCmd('commandBar')}
-                </Button>
-              </div>
-            </div>
+            ) : (
+              <Tldraw onMount={onMount} />
+            )}
           </div>
-
-          {/* Canvas Grid Overlay (Optional) */}
-          <div
-            className="absolute inset-4 pointer-events-none opacity-20"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-                linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
-              `,
-              backgroundSize: '20px 20px',
-            }}
-            aria-hidden="true"
-          />
         </Card>
 
         {/* Status Bar */}
@@ -487,84 +505,17 @@ export default function EditorPage() {
               {locale === 'en' ? 'Theme:' : 'Tema:'}{' '}
               {tTheme(themeKeyFor(theme as ThemeMode))}
             </span>
+            <Separator orientation="vertical" className="h-4" />
+            <SaveIndicator
+              status={saveStatus}
+              translations={{
+                saved: tSave('saved'),
+                saving: tSave('saving'),
+                error: tSave('error'),
+              }}
+            />
           </div>
         </div>
-
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer hover:text-foreground transition-colors">
-            {locale === 'en' ? 'Keyboard Shortcuts' : 'Atajos de Teclado'}
-          </summary>
-          <div className="mt-2 p-3 bg-card rounded border border-border">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+K
-                </kbd>{' '}
-                {tCmd('commandBar')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+S
-                </kbd>{' '}
-                {tEditor('save')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+Z
-                </kbd>{' '}
-                {tEditor('undo')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+Y
-                </kbd>{' '}
-                {tEditor('redo')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+M
-                </kbd>{' '}
-                {tEditor('modifyShape')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+Shift+O
-                </kbd>{' '}
-                {tEditor('autoOrganize')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl++
-                </kbd>{' '}
-                {tEditor('zoomIn')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+-
-                </kbd>{' '}
-                {tEditor('zoomOut')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+0
-                </kbd>{' '}
-                {tEditor('resetView')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+Shift+T
-                </kbd>{' '}
-                {tEditor('toggleTheme')}
-              </div>
-              <div>
-                <kbd className="px-1 py-0.5 bg-muted rounded text-xs">
-                  Ctrl+Shift+L
-                </kbd>{' '}
-                {tEditor('toggleLanguage')}
-              </div>
-            </div>
-          </div>
-        </details>
       </main>
     </div>
   )

@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { notFound } from 'next/navigation'
 import { getMessages } from 'next-intl/server'
 import { Space_Grotesk } from 'next/font/google'
+import { TrpcProvider } from '@/modules/editor/presentation/store/client'
 
 import '../globals.css'
 
@@ -21,7 +22,6 @@ export const metadata: Metadata = {
   generator: 'v0.app',
 }
 
-// Type guard para estrechar de string -> Locale
 function isLocale(input: string): input is Locale {
   return (routing.locales as readonly string[]).includes(input)
 }
@@ -31,15 +31,10 @@ export default async function RootLayout({
   params,
 }: Readonly<{
   children: React.ReactNode
-  // En Next 15, params es Promise
   params: Promise<{ locale: string }>
 }>) {
   const { locale: rawLocale } = await params
-
-  if (!isLocale(rawLocale)) {
-    notFound()
-  }
-  // A partir de aquí, TS sabe que es "en" | "es"
+  if (!isLocale(rawLocale)) notFound()
   const locale: Locale = rawLocale
 
   const messages = await getMessages({ locale })
@@ -48,7 +43,7 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`font-sans ${spaceGrotesk.variable}`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
+          <TrpcProvider>{children}</TrpcProvider>
         </NextIntlClientProvider>
       </body>
     </html>
