@@ -1,7 +1,7 @@
-// videtz-generate.ts
-import { type Editor, createShapeId, type TLShapeId } from '@tldraw/tldraw'
-type CreateShapesInput = Parameters<Editor['createShapes']>[0]
-type CreateShape = CreateShapesInput[number]
+// modules/editor/presentation/ai/videtz-generate.ts
+import { type Editor, createShapeId } from '@tldraw/tldraw'
+
+type CreateShapesArg = Parameters<Editor['createShapes']>[0]
 
 export function generateFlowFromText(editor: Editor, input: string) {
   const edges = input
@@ -14,71 +14,69 @@ export function generateFlowFromText(editor: Editor, input: string) {
     })
     .filter(Boolean) as Array<readonly [string, string]>
 
+  if (edges.length === 0) return
+
   const nodes = [...new Set(edges.flat())]
 
-  const gap = 220
-  const cols = Math.ceil(Math.sqrt(nodes.length))
+  const GAP = 260
+  const W = 220
+  const H = 110
+  const COLS = Math.max(1, Math.ceil(Math.sqrt(nodes.length)))
 
-  const nodeMap = new Map<
-    string,
-    { geoId: TLShapeId; textId: TLShapeId; x: number; y: number }
-  >()
-
-  nodes.forEach((name, i) => {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    const x = col * gap
-    const y = row * gap
-    nodeMap.set(name, {
-      geoId: createShapeId(),
-      textId: createShapeId(),
-      x,
-      y,
-    })
-  })
-
-  const nodeShapes = Array.from(nodeMap.entries()).flatMap<CreateShape>(
-    ([name, n]) => [
-      {
-        id: n.geoId,
-        type: 'geo',
-        x: n.x,
-        y: n.y,
-        props: { geo: 'rectangle', w: 200, h: 80 },
-      },
-      {
-        id: n.textId,
-        type: 'text',
-        x: n.x + 100,
-        y: n.y + 40,
-        props: { text: name, autoSize: true, size: 'm', align: 'middle' },
-      },
-    ]
-  )
-  editor.createShapes(nodeShapes as CreateShapesInput)
-
-  const arrowShapes = edges.map<CreateShape>(([a, b]) => {
-    const A = nodeMap.get(a)!
-    const B = nodeMap.get(b)!
+  const nodeRecords = nodes.map((name, i) => {
+    const col = i % COLS
+    const row = Math.floor(i / COLS)
+    const x = col * GAP
+    const y = row * GAP
     return {
-      id: createShapeId(),
-      type: 'arrow',
-      x: 0,
-      y: 0,
-      props: {
-        start: {
-          type: 'binding',
-          boundShapeId: A.geoId,
-          normalizedAnchor: { x: 0.5, y: 0.5 },
-        },
-        end: {
-          type: 'binding',
-          boundShapeId: B.geoId,
-          normalizedAnchor: { x: 0.5, y: 0.5 },
-        },
+      name,
+      rec: {
+        id: createShapeId(),
+        type: 'geo' as const,
+        x,
+        y,
+        props: { geo: 'rectangle', w: W, h: H },
       },
     }
   })
 
-  editor.createShapes(arrowShapes as CreateShapesInput)
+  const nodeMap = new Map<string, (typeof nodeRecords)[number]['rec']>()
+  for (const n of nodeRecords) nodeMap.set(n.name, n.rec)
+
+  const centerOf = (r: {
+    x: number
+    y: number
+    props: { w: number; h: number }
+  }) => ({
+    x: r.x + r.props.w / 2,
+    y: r.y + r.props.h / 2,
+  })
+
+  const arrowRecords = edges.map(([a, b]) => {
+    const A = nodeMap.get(a)!
+    const B = nodeMap.get(b)!
+    const s = centerOf(A)
+    const e = centerOf(B)
+    return {
+      id: createShapeId(),
+      type: 'arrow' as const,
+      x: 0,
+      y: 0,
+      props: {
+        start: { x: s.x, y: s.y },
+        end: { x: e.x, y: e.y },
+        bend: 0,
+        arrowheadStart: 'none',
+        arrowheadEnd: 'arrow',
+      },
+    }
+  })
+
+  const shapes: CreateShapesArg = [
+    ...nodeRecords.map((n) => n.rec),
+    ...arrowRecords,
+  ]
+
+  editor.createShapes(shapes)
+  editor.select(nodeRecords.at(-1)!.rec.id)
 }

@@ -1,80 +1,83 @@
-// mindmap.ts
 import { type Editor, createShapeId } from '@tldraw/tldraw'
 
-type CreateShapesInput = Parameters<Editor['createShapes']>[0]
-type CreateShape = CreateShapesInput[number]
+type CreateShapesArg = Parameters<Editor['createShapes']>[0]
 
-export function applyMindMapTemplate(editor: Editor) {
-  const center = { name: 'Topic', x: 0, y: 0 }
-  const branches = [
-    { name: 'Idea A', x: -300, y: -150 },
-    { name: 'Idea B', x: 300, y: -150 },
-    { name: 'Idea C', x: -300, y: 150 },
-    { name: 'Idea D', x: 300, y: 150 },
-  ]
-
-  const centerGeo = createShapeId()
-  const centerTxt = createShapeId()
-  const shapes: CreateShape[] = [
-    {
-      id: centerGeo,
-      type: 'geo',
-      x: center.x,
-      y: center.y,
-      props: { geo: 'ellipse', w: 220, h: 100 },
-    },
-    {
-      id: centerTxt,
-      type: 'text',
-      x: center.x + 110,
-      y: center.y + 50,
-      props: { text: center.name, autoSize: true, size: 'm', align: 'middle' },
-    },
-  ]
-
-  const branchIds: string[] = []
-  for (const b of branches) {
-    const geoId = createShapeId()
-    const txtId = createShapeId()
-    branchIds.push(geoId)
-    shapes.push(
-      {
-        id: geoId,
-        type: 'geo',
-        x: b.x,
-        y: b.y,
-        props: { geo: 'rounded-rectangle', w: 200, h: 80 },
-      },
-      {
-        id: txtId,
-        type: 'text',
-        x: b.x + 100,
-        y: b.y + 40,
-        props: { text: b.name, autoSize: true, size: 'm', align: 'middle' },
-      }
-    )
-  }
-
-  editor.createShapes(shapes as CreateShapesInput)
-
-  const arrows: CreateShape[] = branchIds.map((id) => ({
+function makeCircle(x: number, y: number, r = 90) {
+  const w = r * 2
+  const h = r * 2
+  return {
     id: createShapeId(),
-    type: 'arrow',
+    type: 'geo' as const,
+    x,
+    y,
+    props: { geo: 'ellipse', w, h },
+  }
+}
+
+function makeBox(x: number, y: number, w = 220, h = 100) {
+  return {
+    id: createShapeId(),
+    type: 'geo' as const,
+    x,
+    y,
+    props: { geo: 'rectangle', w, h },
+  }
+}
+
+function centerOf(box: {
+  x: number
+  y: number
+  props: { w: number; h: number }
+}) {
+  return { cx: box.x + box.props.w / 2, cy: box.y + box.props.h / 2 }
+}
+
+function makeArrowPoint(
+  from: ReturnType<typeof makeCircle> | ReturnType<typeof makeBox>,
+  to: ReturnType<typeof makeCircle> | ReturnType<typeof makeBox>
+) {
+  const { cx: sx, cy: sy } = centerOf(from)
+  const { cx: ex, cy: ey } = centerOf(to)
+
+  return {
+    id: createShapeId(),
+    type: 'arrow' as const,
     x: 0,
     y: 0,
     props: {
-      start: {
-        type: 'binding',
-        boundShapeId: centerGeo,
-        normalizedAnchor: { x: 0.5, y: 0.5 },
-      },
-      end: {
-        type: 'binding',
-        boundShapeId: id,
-        normalizedAnchor: { x: 0.5, y: 0.5 },
-      },
+      start: { x: sx, y: sy },
+      end: { x: ex, y: ey },
+      bend: 0,
+      arrowheadStart: 'none',
+      arrowheadEnd: 'arrow',
     },
-  }))
+  } as const
+}
 
-  editor.createShapes(arrows as CreateShapesInput)
+export function applyMindMapTemplate(editor: Editor) {
+  const center = makeCircle(0, 0, 110)
+
+  const RADIUS = 420
+  const BRANCH_W = 240
+  const BRANCH_H = 110
+
+  const angles = [0, 60, 120, 180, 240, 300].map((a) => (a * Math.PI) / 180)
+
+  const C = centerOf(center)
+
+  const branches = angles.map((theta) => {
+    const cx = C.cx + RADIUS * Math.cos(theta)
+    const cy = C.cy + RADIUS * Math.sin(theta)
+
+    const x = cx - BRANCH_W / 2
+    const y = cy - BRANCH_H / 2
+
+    return makeBox(x, y, BRANCH_W, BRANCH_H)
+  })
+
+  const arrows = branches.map((branch) => makeArrowPoint(center, branch))
+
+  const shapes: CreateShapesArg = [center, ...branches, ...arrows]
+  editor.createShapes(shapes)
+  editor.select(center.id)
 }

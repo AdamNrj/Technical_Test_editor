@@ -25,10 +25,9 @@ import { useTheme } from '@/hooks/use-theme'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { downloadBlob } from '@/hooks/use-download-blob'
 import { useTldrawAutosave } from '@/hooks/use-tldraw-autosave'
-import { svgPlaceholderDataUrl } from '@/hooks/use-mock-image'
 import { useOnboarding } from '@/hooks/use-onboarding'
 
-import { ArrowLeft, Palette, FileText, Command } from 'lucide-react'
+import { ArrowLeft, FileText, Command } from 'lucide-react'
 import {
   Tldraw,
   type Editor,
@@ -72,15 +71,8 @@ export default function EditorPage() {
   const [zoomLevel, setZoomLevel] = useState(100)
   const { theme, changeTheme } = useTheme()
 
-  const {
-    open,
-    setOpen,
-    step,
-    setStep,
-    dontShowAgain,
-    setDontShowAgain,
-    close,
-  } = useOnboarding()
+  const { open, step, setStep, dontShowAgain, setDontShowAgain, close } =
+    useOnboarding()
 
   const { onMount, isLoading, saveState, editorRef } = useTldrawAutosave(docId)
   type Step = { title: string; desc: string }
@@ -383,13 +375,18 @@ export default function EditorPage() {
   }
 
   useEffect(() => {
+    if (isLoading) return
     const e = editorRef.current
     if (!e) return
-    const update = () => setCanExport(e.getCurrentPageShapeIds().size > 0)
-    update()
-    const unsub = e.store.listen(update, { scope: 'document' })
+
+    const compute = () => {
+      setCanExport(e.getCurrentPageShapeIds().size > 0)
+    }
+
+    compute()
+    const unsub = e.store.listen(() => compute(), { scope: 'document' })
     return () => unsub()
-  }, [editorRef])
+  }, [editorRef, isLoading])
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -454,7 +451,7 @@ export default function EditorPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-2 btn-hover-effect"
+                  className="flex items-center gap-2 btn-hover-effect cursor-pointer"
                   aria-label={
                     locale === 'en'
                       ? 'Go back to home page'
@@ -496,6 +493,7 @@ export default function EditorPage() {
 
             {/* Center Section - Toolbar */}
             <div className="hidden lg:flex">
+              {/* Toolbar (desktop) */}
               <Toolbar
                 onModifyShape={handleModifyShape}
                 onAutoOrganize={handleAutoOrganize}
@@ -589,6 +587,7 @@ export default function EditorPage() {
 
           {/* Mobile Toolbar */}
           <div className="lg:hidden mt-3 pt-3 border-t border-border">
+            {/* Toolbar (mobile) */}
             <Toolbar
               onModifyShape={handleModifyShape}
               onAutoOrganize={handleAutoOrganize}
