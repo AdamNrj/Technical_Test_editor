@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { routing, type Locale } from '@/i18n/routing'
 import { NextIntlClientProvider } from 'next-intl'
 import { notFound } from 'next/navigation'
+import { Toaster } from '@/components/ui/sonner'
 import { getMessages } from 'next-intl/server'
 import { Space_Grotesk } from 'next/font/google'
 import { TrpcProvider } from '@/modules/editor/presentation/store/client'
@@ -44,6 +45,7 @@ export default async function RootLayout({
       <body className={`font-sans ${spaceGrotesk.variable}`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <TrpcProvider>{children}</TrpcProvider>
+          <Toaster richColors position="top-right" />
         </NextIntlClientProvider>
       </body>
     </html>

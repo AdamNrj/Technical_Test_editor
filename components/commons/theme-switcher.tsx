@@ -71,7 +71,7 @@ export function ThemeSwitcher({
           <span className="sr-only">{translations.changeTheme}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48 z-[10000]">
         {themes.map((theme) => {
           const Icon = theme.icon
           return (

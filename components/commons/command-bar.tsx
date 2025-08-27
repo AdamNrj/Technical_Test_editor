@@ -236,7 +236,7 @@ export function CommandBar({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-start justify-center pt-[20vh]">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-start justify-center pt-[20vh] z-[10000]">
       <Card className="w-full max-w-lg mx-4 shadow-2xl border-border/50">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-4">

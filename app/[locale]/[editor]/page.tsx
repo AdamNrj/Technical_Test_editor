@@ -1,26 +1,32 @@
 'use client'
 
 import type React from 'react'
-import { useState } from 'react'
+import { exportToBlob, getSnapshot } from '@tldraw/tldraw'
+import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
 import { Toolbar } from '@/components/commons/toolbar'
+import { toast } from 'sonner'
 import { SaveIndicator } from '@/components/commons/save-indicator'
 import { LangSwitcher } from '@/components/commons/lang-switcher'
 import { ThemeSwitcher } from '@/components/commons/theme-switcher'
 import { CommandBar } from '@/components/commons/command-bar'
 import { AccessibilityAnnouncer } from '@/components/commons/accessibility-announcer'
 import { SkipLink } from '@/components/commons/skip-link'
+import { Onboarding } from '@/components/commons/onboarding'
 
+import { generateFlowFromText } from '@/modules/editor/presentation/ai/videtz-generate'
 import { useTheme } from '@/hooks/use-theme'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
+import { downloadBlob } from '@/hooks/use-download-blob'
 import { useTldrawAutosave } from '@/hooks/use-tldraw-autosave'
+import { svgPlaceholderDataUrl } from '@/hooks/use-mock-image'
+import { useOnboarding } from '@/hooks/use-onboarding'
 
 import { ArrowLeft, Palette, FileText, Command } from 'lucide-react'
 import {
@@ -30,6 +36,8 @@ import {
   type TLShapeId,
 } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
+import { applyFlowTemplate } from '@/modules/editor/presentation/templates/flow'
+import { applyMindMapTemplate } from '@/modules/editor/presentation/templates/mindmap'
 
 type SaveStatus = 'saved' | 'saving' | 'error'
 type Locale = 'en' | 'es'
@@ -41,32 +49,43 @@ type ThemeMode =
   | 'deuteranopia'
   | 'tritanopia'
 
-// Tipo auxiliar: elemento que acepta Editor.createShapes()
 type CreateShapeInput = Parameters<Editor['createShapes']>[0][number]
 
 export default function EditorPage() {
-  // locale & rutas
   const locale = useLocale() as Locale
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const docId = searchParams.get('id') ?? 'main' // multi-doc opcional
+  const docId = searchParams.get('id') ?? 'main'
 
-  // i18n
   const tEditor = useTranslations('Editor')
+  const tToolbar = useTranslations('Toolbar')
   const tSave = useTranslations('SaveStatus')
   const tCmd = useTranslations('CommandBar')
   const tTheme = useTranslations('Theme')
+  const tOnb = useTranslations('Onboarding')
 
-  // UI state
+  const [canExport, setCanExport] = useState(false)
   const [documentTitle, setDocumentTitle] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(100)
   const { theme, changeTheme } = useTheme()
 
-  // tldraw + autosave (tRPC)
+  const {
+    open,
+    setOpen,
+    step,
+    setStep,
+    dontShowAgain,
+    setDontShowAgain,
+    close,
+  } = useOnboarding()
+
   const { onMount, isLoading, saveState, editorRef } = useTldrawAutosave(docId)
+  type Step = { title: string; desc: string }
+  const steps = (tOnb.raw('steps') as Step[]) ?? []
+
   const saveStatus: SaveStatus =
     saveState === 'saving'
       ? 'saving'
@@ -74,11 +93,15 @@ export default function EditorPage() {
       ? 'error'
       : 'saved'
 
-  // helpers
   function navigateToLocale(next: Locale) {
-    const parts = pathname.split('/') // ["", "en", "editor"...]
+    const parts = pathname.split('/')
     const newPath = '/' + [next, ...parts.slice(2)].filter(Boolean).join('/')
     router.push(newPath || `/${next}`)
+  }
+
+  function safeTitle(): string {
+    const t = documentTitle?.trim()
+    return t && t.length > 0 ? t : 'document-1'
   }
 
   function themeKeyFor(
@@ -111,12 +134,19 @@ export default function EditorPage() {
     if (e) fn(e)
   }
 
-  // === Acciones del editor ===
+  function handleOnbNext() {
+    const isLast = step >= steps.length
+    if (!isLast) setStep(step + 1)
+    else close()
+  }
+  function handleOnbSkip() {
+    close()
+  }
+
   function handleModifyShape() {
     withEditor((editor) => {
       const selected = [...editor.getSelectedShapeIds()]
       if (selected.length === 0) {
-        // crear rectángulo básico y seleccionarlo
         const id: TLShapeId = createShapeId()
         const rect = {
           id,
@@ -132,7 +162,6 @@ export default function EditorPage() {
         )
         return
       }
-      // mover ligeramente las figuras seleccionadas
       const dx = 24 - Math.random() * 48
       const dy = 24 - Math.random() * 48
       editor.nudgeShapes(selected, { x: dx, y: dy })
@@ -140,6 +169,97 @@ export default function EditorPage() {
     })
   }
 
+  async function handleExportPng() {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const ids = Array.from(editor.getCurrentPageShapeIds())
+    if (ids.length === 0) {
+      toast.info(tEditor('nothingToExport'))
+      return
+    }
+
+    const blob = await exportToBlob({
+      editor,
+      ids,
+      format: 'png',
+      opts: { background: true, scale: 2 },
+    })
+
+    const filename = `${safeTitle()}.png`
+    downloadBlob(blob, filename)
+    setAnnouncement(tEditor('exported'))
+    toast.success(tEditor('exported'), { description: filename })
+  }
+
+  async function handleExportSvg() {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const ids = Array.from(editor.getCurrentPageShapeIds())
+    if (ids.length === 0) {
+      toast.info(tEditor('nothingToExport'))
+      return
+    }
+
+    const blob = await exportToBlob({
+      editor,
+      ids,
+      format: 'svg',
+      opts: { background: true, scale: 1 },
+    })
+
+    const filename = `${safeTitle()}.svg`
+    downloadBlob(blob, filename)
+    setAnnouncement(tEditor('exported'))
+    toast.success(tEditor('exported'), { description: filename })
+  }
+
+  function handleExportJson() {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const ids = Array.from(editor.getCurrentPageShapeIds())
+    if (ids.length === 0) {
+      toast.info(tEditor('nothingToExport'))
+      return
+    }
+
+    const snap = getSnapshot(editor.store)
+    const blob = new Blob([JSON.stringify(snap, null, 2)], {
+      type: 'application/json',
+    })
+
+    const filename = `${safeTitle()}.json`
+    downloadBlob(blob, filename)
+    setAnnouncement(tEditor('exported'))
+    toast.success(tEditor('exported'), { description: filename })
+  }
+
+  function handleNewFlowTemplate() {
+    const editor = editorRef.current
+    if (!editor) return
+    applyFlowTemplate(editor)
+    toast(tEditor('flowTemplate'))
+  }
+
+  function handleNewMindMapTemplate() {
+    const editor = editorRef.current
+    if (!editor) return
+    applyMindMapTemplate(editor)
+    toast(tEditor('mindMapTemplate'))
+  }
+
+  function handleGenerateVidetz() {
+    const editor = editorRef.current
+    if (!editor) return
+    const input = window.prompt(
+      'Escribe relaciones "A -> B" separadas por comas',
+      'Start -> Validate, Validate -> Save, Save -> Finish'
+    )
+    if (!input) return
+    generateFlowFromText(editor, input)
+  }
   function handleAutoOrganize() {
     withEditor((editor) => {
       const shapes = editor.getCurrentPageShapes()
@@ -165,10 +285,9 @@ export default function EditorPage() {
     })
   }
 
-  // === Handlers UI ===
   const handleSave = () => {
-    // El autosave ya guarda; damos feedback manual
     setAnnouncement(tSave('saved'))
+    toast.success(tSave('saved'))
   }
 
   const handleUndo = () => {
@@ -205,7 +324,6 @@ export default function EditorPage() {
 
   const handleResetView = () => {
     withEditor((editor) => {
-      // reset de zoom + cámara al origen
       editor.resetZoom()
       editor.setCamera({ x: 0, y: 0, z: 1 })
     })
@@ -264,9 +382,26 @@ export default function EditorPage() {
     setDocumentTitle(e.target.value)
   }
 
-  // === Render ===
+  useEffect(() => {
+    const e = editorRef.current
+    if (!e) return
+    const update = () => setCanExport(e.getCurrentPageShapeIds().size > 0)
+    update()
+    const unsub = e.store.listen(update, { scope: 'document' })
+    return () => unsub()
+  }, [editorRef])
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Onboarding
+        open={open}
+        step={step}
+        steps={steps}
+        dontShowAgain={dontShowAgain}
+        onNext={handleOnbNext}
+        onSkip={handleOnbSkip}
+        onToggleDontShowAgain={() => setDontShowAgain(!dontShowAgain)}
+      />
       <SkipLink href="#main-content">
         {locale === 'en'
           ? 'Skip to main content'
@@ -370,6 +505,12 @@ export default function EditorPage() {
                 onZoomOut={handleZoomOut}
                 onResetView={handleResetView}
                 onSave={handleSave}
+                onExportPng={handleExportPng}
+                onExportSvg={handleExportSvg}
+                onExportJson={handleExportJson}
+                onGenerateVidetz={handleGenerateVidetz}
+                onNewFlowTemplate={handleNewFlowTemplate}
+                onNewMindMapTemplate={handleNewMindMapTemplate}
                 translations={{
                   modifyShape: tEditor('modifyShape'),
                   autoOrganize: tEditor('autoOrganize'),
@@ -379,6 +520,13 @@ export default function EditorPage() {
                   zoomOut: tEditor('zoomOut'),
                   resetView: tEditor('resetView'),
                   save: tEditor('save'),
+                  exportPng: tToolbar('exportPng'),
+                  exportSvg: tToolbar('exportSvg'),
+                  exportJson: tToolbar('exportJson'),
+                  generateVidetz: tToolbar('generateVidetz'),
+                  newFromTemplate: tEditor('newFromTemplate'),
+                  flowTemplate: tEditor('flowTemplate'),
+                  mindMapTemplate: tEditor('mindMapTemplate'),
                 }}
               />
             </div>
@@ -450,6 +598,12 @@ export default function EditorPage() {
               onZoomOut={handleZoomOut}
               onResetView={handleResetView}
               onSave={handleSave}
+              onExportPng={handleExportPng}
+              onExportSvg={handleExportSvg}
+              onExportJson={handleExportJson}
+              onGenerateVidetz={handleGenerateVidetz}
+              onNewFlowTemplate={handleNewFlowTemplate}
+              onNewMindMapTemplate={handleNewMindMapTemplate}
               translations={{
                 modifyShape: tEditor('modifyShape'),
                 autoOrganize: tEditor('autoOrganize'),
@@ -459,6 +613,13 @@ export default function EditorPage() {
                 zoomOut: tEditor('zoomOut'),
                 resetView: tEditor('resetView'),
                 save: tEditor('save'),
+                exportPng: tToolbar('exportPng'),
+                exportSvg: tToolbar('exportSvg'),
+                exportJson: tToolbar('exportJson'),
+                generateVidetz: tToolbar('generateVidetz'),
+                newFromTemplate: tEditor('newFromTemplate'),
+                flowTemplate: tEditor('flowTemplate'),
+                mindMapTemplate: tEditor('mindMapTemplate'),
               }}
             />
           </div>
@@ -478,8 +639,10 @@ export default function EditorPage() {
         >
           <div className="absolute inset-0" id="canvas-area">
             {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                Loading…
+              <div className="absolute inset-0 grid place-items-center bg-background/60 z-20">
+                <div className="rounded-md px-4 py-2 bg-card border animate-pulse text-sm">
+                  {tEditor('loadingDocument')}
+                </div>
               </div>
             ) : (
               <Tldraw onMount={onMount} />

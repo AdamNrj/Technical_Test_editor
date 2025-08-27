@@ -6,9 +6,9 @@
     "featureFastTitle": "Fast & Intuitive",
     "featureFastDesc": "Create diagrams quickly with our streamlined interface and smart tools.",
     "featureModernTitle": "Modern Design",
-    "featureModernDesc": "A beautiful, accessible interface that adapts to your preferences and needs.",
+    "featureModernDesc": "Beautiful, accessible interface that adapts to your preferences and needs.",
     "featureAccessibleTitle": "Accessible",
-    "featureAccessibleDesc": "Full support for different themes and accessibility needs, including color-blind modes.",
+    "featureAccessibleDesc": "Full support for different themes and accessibility needs including colorblind support.",
     "ctaTitle": "Ready to start creating?",
     "ctaDesc": "Jump into our visual editor and bring your ideas to life.",
     "footerNote": "Built with modern web technologies for the best experience."
@@ -23,17 +23,29 @@
     "zoomOut": "Zoom Out",
     "resetView": "Reset View",
     "save": "Save",
+    "generateVidetz": "Videtz",
     "toggleTheme": "Toggle Theme",
-    "toggleLanguage": "Toggle Language"
-  },
-  "SaveStatus": {
-    "saved": "Saved",
-    "saving": "Saving...",
-    "error": "Error"
+    "toggleLanguage": "Toggle Language",
+    "exportPng": "Export PNG",
+    "exportSvg": "Export SVG",
+    "exportJson": "Export JSON",
+    "generated": "Generated",
+    "exported": "Exported",
+    "loadingDocument": "Loading document…",
+    "newFromTemplate": "New from template",
+    "flowTemplate": "Flowchart",
+    "mindMapTemplate": "Mind map",
+    "nothingToExport": "Nothing to export yet. Create or modify a shape first."
   },
   "CommandBar": {
     "searchPlaceholder": "Search commands...",
     "commandBar": "Command Bar"
+  },
+  "SaveStatus": {
+    "saved": "Saved",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "error": "Error"
   },
   "Theme": {
     "light": "Light",
@@ -43,5 +55,44 @@
     "deuteranopia": "Deuteranopia",
     "tritanopia": "Tritanopia",
     "changeTheme": "Change theme"
+  },
+  "Toolbar": {
+    "generateVidetz": "Generate Videtz",
+    "exportPng": "Export PNG",
+    "exportSvg": "Export SVG",
+    "exportJson": "Export JSON"
+  },
+  "Onboarding": {
+    "hello": "Hi! I'm Mini-Vitexlt 👋",
+    "welcome": "Welcome to the Vitexl Editor",
+    "intro": "I'll give you a quick tour so you can create diagrams like a pro.",
+    "steps": [
+      {
+        "title": "Canvas",
+        "desc": "Draw shapes, arrows and notes. Zoom with Ctrl++ / Ctrl+-."
+      },
+      {
+        "title": "Toolbar",
+        "desc": "Use Modify, Auto-organize, Undo/Redo, Zoom and Save actions."
+      },
+      {
+        "title": "Command Bar",
+        "desc": "Press Ctrl+K to find commands quickly."
+      },
+      {
+        "title": "Themes & Language",
+        "desc": "Switch theme and language from the top-right controls."
+      },
+      {
+        "title": "AI Generate",
+        "desc": "Use Videtz to generate a flow from text like: Start -> Validate, Validate -> Save."
+      }
+    ],
+    "dontShowAgain": "Don’t show again",
+    "skip": "Skip",
+    "next": "Next",
+    "start": "Start",
+    "done": "Done",
+    "cta": "Let’s start!"
   }
 }

@@ -8,7 +8,7 @@
     "featureModernTitle": "Diseño Moderno",
     "featureModernDesc": "Interfaz hermosa y accesible que se adapta a tus preferencias y necesidades.",
     "featureAccessibleTitle": "Accesible",
-    "featureAccessibleDesc": "Soporte completo para distintos temas y necesidades de accesibilidad, incluyendo modos para daltonismo.",
+    "featureAccessibleDesc": "Soporte completo para diferentes temas y necesidades de accesibilidad incluyendo daltonismo.",
     "ctaTitle": "¿Listo para empezar a crear?",
     "ctaDesc": "Sumérgete en nuestro editor visual y da vida a tus ideas.",
     "footerNote": "Construido con tecnologías web modernas para la mejor experiencia."
@@ -23,17 +23,29 @@
     "zoomOut": "Alejar",
     "resetView": "Restablecer Vista",
     "save": "Guardar",
+    "exportPng": "Exportar PNG",
+    "generateVidetz": "Videtz",
+    "generated": "Imagen generada",
+    "exported": "PNG exportado",
     "toggleTheme": "Cambiar Tema",
-    "toggleLanguage": "Cambiar Idioma"
-  },
-  "SaveStatus": {
-    "saved": "Guardado",
-    "saving": "Guardando...",
-    "error": "Error"
+    "toggleLanguage": "Cambiar Idioma",
+    "exportSvg": "Exportar SVG",
+    "exportJson": "Exportar JSON",
+    "loadingDocument": "Cargando documento…",
+    "newFromTemplate": "Nuevo desde plantilla",
+    "flowTemplate": "Diagrama de flujo",
+    "mindMapTemplate": "Mapa mental",
+    "nothingToExport": "No hay nada para exportar. Crea o modifica una figura primero."
   },
   "CommandBar": {
     "searchPlaceholder": "Buscar comandos...",
     "commandBar": "Barra de Comandos"
+  },
+  "SaveStatus": {
+    "saved": "Guardado",
+    "saving": "Guardando...",
+    "loading": "Cargando...",
+    "error": "Error"
   },
   "Theme": {
     "light": "Claro",
@@ -43,5 +55,44 @@
     "deuteranopia": "Deuteranopia",
     "tritanopia": "Tritanopia",
     "changeTheme": "Cambiar tema"
+  },
+  "Toolbar": {
+    "generateVidetz": "Generar Videtz",
+    "exportPng": "Exportar PNG",
+    "exportSvg": "Exportar SVG",
+    "exportJson": "Exportar JSON"
+  },
+  "Onboarding": {
+    "hello": "¡Hola! Soy Mini-Vitexlt 👋",
+    "welcome": "Bienvenido al Editor Vitexl",
+    "intro": "Te doy un tour rápido para que crees diagramas como un pro.",
+    "steps": [
+      {
+        "title": "Lienzo",
+        "desc": "Dibuja figuras, flechas y notas. Zoom con Ctrl++ / Ctrl+-."
+      },
+      {
+        "title": "Barra de herramientas",
+        "desc": "Usa Modificar, Auto-organizar, Deshacer/Rehacer, Zoom y Guardar."
+      },
+      {
+        "title": "Barra de Comandos",
+        "desc": "Presiona Ctrl+K para encontrar comandos rápidamente."
+      },
+      {
+        "title": "Temas e Idioma",
+        "desc": "Cambia tema e idioma desde los controles superiores."
+      },
+      {
+        "title": "Generación IA",
+        "desc": "Usa Videtz para generar un flujo desde texto, ej.: Start -> Validate, Validate -> Save."
+      }
+    ],
+    "dontShowAgain": "No mostrar de nuevo",
+    "skip": "Saltar",
+    "next": "Siguiente",
+    "start": "Comenzar",
+    "done": "Listo",
+    "cta": "¡Vamos!"
   }
 }

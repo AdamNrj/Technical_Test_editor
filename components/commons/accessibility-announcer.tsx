@@ -26,7 +26,7 @@ export function AccessibilityAnnouncer({
       role="status"
       aria-live={priority}
       aria-atomic="true"
-      className="sr-only"
+      className="sr-only z-[10000]"
       aria-label="Status announcements"
     >
       {announcement}
