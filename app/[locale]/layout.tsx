@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: 'Visual Editor - Modern Diagram Creation',
   description:
     'Create and edit diagrams with our modern visual editor based on tldraw',
-  generator: 'v0.app',
+  generator: 'manuel.app',
 }
 
 function isLocale(input: string): input is Locale {
