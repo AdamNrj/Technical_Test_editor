@@ -68,7 +68,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Hero Section */}
+          {/* Hero */}
           <div className="mb-16">
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
               {tHome('title')}
@@ -90,54 +90,58 @@ export default function HomePage() {
 
           {/* Features Grid */}
           <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+            <Card className="group p-6 border-border bg-card text-card-foreground hover:bg-accent/10 hover:shadow-lg transition-all duration-200 cursor-pointer focus-within:ring-2 focus-within:ring-ring">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 mx-auto">
                 <Zap className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {tHome('featureFastTitle')}
+              <h3 className="text-lg font-semibold mb-2">
+                {' '}
+                {tHome('featureFastTitle')}{' '}
               </h3>
               <p className="text-muted-foreground">
-                {tHome('featureFastDesc')}
+                {' '}
+                {tHome('featureFastDesc')}{' '}
               </p>
             </Card>
 
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+            <Card className="group p-6 border-border bg-card text-card-foreground hover:bg-accent/10 hover:shadow-lg transition-all duration-200 cursor-pointer focus-within:ring-2 focus-within:ring-ring">
               <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-4 mx-auto">
                 <Palette className="h-6 w-6 text-secondary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {tHome('featureModernTitle')}
+              <h3 className="text-lg font-semibold mb-2">
+                {' '}
+                {tHome('featureModernTitle')}{' '}
               </h3>
               <p className="text-muted-foreground">
-                {tHome('featureModernDesc')}
+                {' '}
+                {tHome('featureModernDesc')}{' '}
               </p>
             </Card>
 
-            <Card className="p-6 border-border bg-card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+            <Card className="group p-6 border-border bg-card text-card-foreground hover:bg-accent/10 hover:shadow-lg transition-all duration-200 cursor-pointer focus-within:ring-2 focus-within:ring-ring">
               <div className="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4 mx-auto">
                 <Globe className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                {tHome('featureAccessibleTitle')}
+              <h3 className="text-lg font-semibold mb-2">
+                {' '}
+                {tHome('featureAccessibleTitle')}{' '}
               </h3>
               <p className="text-muted-foreground">
-                {tHome('featureAccessibleDesc')}
+                {' '}
+                {tHome('featureAccessibleDesc')}{' '}
               </p>
             </Card>
           </div>
 
-          {/* CTA Section */}
-          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-8 border border-border">
-            <h2 className="text-2xl font-semibold text-foreground mb-4">
-              {tHome('ctaTitle')}
-            </h2>
+          {/* CTA */}
+          <div className="rounded-2xl p-8 border border-border bg-muted/40 text-foreground">
+            <h2 className="text-2xl font-semibold mb-4">{tHome('ctaTitle')}</h2>
             <p className="text-muted-foreground mb-6">{tHome('ctaDesc')}</p>
             <Link href={`/${locale}/editor`}>
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-xl bg-transparent cursor-pointer"
+                className="rounded-xl bg-background hover:bg-accent/10 cursor-pointer"
               >
                 {tHome('openEditor')}
                 <ArrowRight className="ml-2 h-4 w-4" />

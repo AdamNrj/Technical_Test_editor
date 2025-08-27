@@ -1,37 +1,29 @@
-import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
-
 const withNextIntl = createNextIntlPlugin()
 
-const isDev = process.env.NODE_ENV !== 'production'
-const isPreview =
-  !!process.env.VERCEL && process.env.VERCEL_ENV !== 'production'
+const disableCsp =
+  process.env.NEXT_PUBLIC_DISABLE_CSP === '1' ||
+  process.env.VERCEL_ENV !== 'production'
 
-const csp = [
+const PROD_CSP = [
   "default-src 'self'",
-  `script-src 'self' ${isDev ? "'unsafe-eval'" : ''} 'unsafe-inline' ${
-    isPreview ? 'https://vercel.live' : ''
-  }`,
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https://cdn.tldraw.com",
-  "font-src 'self' data: https://cdn.tldraw.com https://fonts.gstatic.com",
-  `connect-src 'self' ws: wss: https://cdn.tldraw.com ${
-    isPreview ? 'https://vercel.live wss://vercel.live' : ''
-  }`,
-  "object-src 'none'",
-  "frame-ancestors 'self'",
-  "base-uri 'self'",
+  "font-src 'self' data: https://fonts.gstatic.com https://cdn.tldraw.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self'", // sin inline/eval en prod
+  "connect-src 'self' https://cdn.tldraw.com",
+  "worker-src 'self' blob:",
+  "media-src 'self' blob:",
 ].join('; ')
 
-const nextConfig: NextConfig = {
+export default withNextIntl({
   async headers() {
+    if (disableCsp) return []
     return [
       {
         source: '/:path*',
-        headers: [{ key: 'Content-Security-Policy', value: csp }],
+        headers: [{ key: 'Content-Security-Policy', value: PROD_CSP }],
       },
     ]
   },
-}
-
-export default withNextIntl(nextConfig)
+})

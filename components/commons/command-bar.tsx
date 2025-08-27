@@ -1,7 +1,6 @@
 'use client'
 
 import type React from 'react'
-
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +19,7 @@ import {
   Languages,
   Search,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Command {
   id: string
@@ -192,10 +192,10 @@ export function CommandBar({
   ]
 
   const filteredCommands = commands.filter(
-    (command) =>
-      command.label.toLowerCase().includes(search.toLowerCase()) ||
-      (command.description &&
-        command.description.toLowerCase().includes(search.toLowerCase()))
+    (c) =>
+      c.label.toLowerCase().includes(search.toLowerCase()) ||
+      (c.description &&
+        c.description.toLowerCase().includes(search.toLowerCase()))
   )
 
   useEffect(() => {
@@ -204,39 +204,33 @@ export function CommandBar({
       setSelectedIndex(0)
       return
     }
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      } else if (e.key === 'ArrowDown') {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex((prev) =>
-          Math.min(prev + 1, filteredCommands.length - 1)
-        )
+        setSelectedIndex((p) => Math.min(p + 1, filteredCommands.length - 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedIndex((prev) => Math.max(prev - 1, 0))
+        setSelectedIndex((p) => Math.max(p - 1, 0))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        if (filteredCommands[selectedIndex]) {
-          filteredCommands[selectedIndex].action()
+        const cmd = filteredCommands[selectedIndex]
+        if (cmd) {
+          cmd.action()
           onClose()
         }
       }
     }
-
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, filteredCommands, selectedIndex, onClose])
 
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [search])
+  useEffect(() => setSelectedIndex(0), [search])
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-start justify-center pt-[20vh] z-[10000]">
+    <div className="fixed inset-0 z-[10000] bg-background/80 backdrop-blur-sm flex items-start justify-center pt-[20vh]">
       <Card className="w-full max-w-lg mx-4 shadow-2xl border-border/50">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-4">
@@ -252,41 +246,76 @@ export function CommandBar({
 
           <Separator className="mb-2" />
 
-          <div className="max-h-80 overflow-y-auto">
+          <div
+            className="max-h-80 overflow-y-auto"
+            role="listbox"
+            aria-activedescendant={
+              filteredCommands[selectedIndex]?.id ?? undefined
+            }
+          >
             {filteredCommands.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 No commands found
               </div>
             ) : (
               <div className="space-y-1">
-                {filteredCommands.map((command, index) => (
-                  <Button
-                    key={command.id}
-                    variant={index === selectedIndex ? 'secondary' : 'ghost'}
-                    className="w-full justify-start h-auto p-3 text-left"
-                    onClick={() => {
-                      command.action()
-                      onClose()
-                    }}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      {command.icon}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{command.label}</div>
-                        {command.description && (
-                          <div className="text-sm text-muted-foreground truncate">
-                            {command.description}
-                          </div>
+                {filteredCommands.map((command, index) => {
+                  const active = index === selectedIndex
+                  return (
+                    <Button
+                      key={command.id}
+                      id={command.id}
+                      role="option"
+                      aria-selected={active}
+                      data-active={active}
+                      variant="ghost"
+                      className={cn(
+                        'w-full justify-start h-auto p-3 text-left rounded-md group',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        active && 'bg-accent text-accent-foreground',
+                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                      )}
+                      onClick={() => {
+                        command.action()
+                        onClose()
+                      }}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        {/* Icono con mejor contraste al estar activo */}
+                        <span className="shrink-0 data-[active=true]:opacity-100 opacity-80 group-data-[active=true]:opacity-100">
+                          {command.icon}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{command.label}</div>
+                          {command.description && (
+                            <div
+                              className={cn(
+                                'text-sm truncate',
+                                active
+                                  ? 'text-accent-foreground/90'
+                                  : 'text-muted-foreground'
+                              )}
+                            >
+                              {command.description}
+                            </div>
+                          )}
+                        </div>
+                        {command.shortcut && (
+                          <kbd
+                            className={cn(
+                              'px-2 py-1 rounded text-xs font-mono',
+                              active
+                                ? 'bg-accent-foreground/10 text-accent-foreground'
+                                : 'bg-muted text-muted-foreground'
+                            )}
+                          >
+                            {command.shortcut}
+                          </kbd>
                         )}
                       </div>
-                      {command.shortcut && (
-                        <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">
-                          {command.shortcut}
-                        </kbd>
-                      )}
-                    </div>
-                  </Button>
-                ))}
+                    </Button>
+                  )
+                })}
               </div>
             )}
           </div>
